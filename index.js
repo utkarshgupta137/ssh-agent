@@ -46,6 +46,16 @@ try {
     console.log('Configuring deployment key(s)');
 
     child_process.execFileSync(sshAddCmd, ['-L']).toString().trim().split(/\r?\n/).forEach(function(key) {
+        const part = key.match(/^(\w+)@/i);
+        let githubUser;
+        let extra = "";
+        if (part) {
+          githubUser = part[1];
+          extra = "StrictHostKeyChecking no";
+        } else {
+          githubUser = 'git';
+        }
+
         const parts = key.match(/\b([\w.]+)[:/]([_.a-z0-9-]+\/[_.a-z0-9-]+)$/i);
 
         if (!parts) {
@@ -61,14 +71,15 @@ try {
 
         fs.writeFileSync(`${homeSsh}/key-${sha256}`, key + "\n", { mode: '600' });
 
-        child_process.execSync(`${gitCmd} config --global --replace-all url."git@key-${sha256}.${githubHost}:${ownerAndRepo}".insteadOf "https://${githubHost}/${ownerAndRepo}"`);
-        child_process.execSync(`${gitCmd} config --global --add url."git@key-${sha256}.${githubHost}:${ownerAndRepo}".insteadOf "git@${githubHost}:${ownerAndRepo}"`);
-        child_process.execSync(`${gitCmd} config --global --add url."git@key-${sha256}.${githubHost}:${ownerAndRepo}".insteadOf "ssh://git@${githubHost}/${ownerAndRepo}"`);
+        child_process.execSync(`${gitCmd} config --global --replace-all url."${githubUser}@key-${sha256}.${githubHost}:${ownerAndRepo}".insteadOf "https://${githubHost}/${ownerAndRepo}"`);
+        child_process.execSync(`${gitCmd} config --global --add url."${githubUser}@key-${sha256}.${githubHost}:${ownerAndRepo}".insteadOf "${githubUser}@${githubHost}:${ownerAndRepo}"`);
+        child_process.execSync(`${gitCmd} config --global --add url."${githubUser}@key-${sha256}.${githubHost}:${ownerAndRepo}".insteadOf "ssh://${githubUser}@${githubHost}/${ownerAndRepo}"`);
 
         const sshConfig = `\nHost key-${sha256}.${githubHost}\n`
                               + `    HostName ${githubHost}\n`
                               + `    IdentityFile ${homeSsh}/key-${sha256}\n`
-                              + `    IdentitiesOnly yes\n`;
+                              + `    IdentitiesOnly yes\n`
+                              + `    ${extra}\n`;
 
         fs.appendFileSync(`${homeSsh}/config`, sshConfig);
 
