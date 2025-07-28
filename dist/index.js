@@ -378,8 +378,7 @@ module.exports =
           console.log('Configuring deployment key(s)');
 
           child_process.execFileSync(sshAddCmd, ['-L']).toString().trim().split(/\r?\n/).forEach(function (key) {
-            const part = key.match(/^(\w+)@/i);
-            let githubUser = part[1];
+            let githubUser = 'whistler';
 
             const parts = key.match(/\b([\w.]+)[:/]([_.a-z0-9-]+\/[_.a-z0-9-]+)$/i);
 
